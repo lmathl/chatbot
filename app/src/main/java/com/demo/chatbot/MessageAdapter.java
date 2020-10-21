@@ -193,7 +193,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                     ((ArticlesViewHolder) holder).mSource[i].setText(model.getSource().getName());
                     ((ArticlesViewHolder) holder).mTime[i].setText(" \u2022 " + Utils.DateToTimeFormat(model.getPublishedAt()));
                     ((ArticlesViewHolder) holder).mPublishedAt[i].setText(Utils.DateFormat(model.getPublishedAt()));
-                    ((ArticlesViewHolder) holder).mAuthor[i].setText(model.getAuthor());
                 }
                 break;
         }
@@ -269,7 +268,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
         private TextView[] mTitle = new TextView[articlesList.size()];
         private TextView[] mDesc = new TextView[articlesList.size()];
-        private TextView[] mAuthor = new TextView[articlesList.size()];
         private TextView[] mPublishedAt = new TextView[articlesList.size()];
         private TextView[] mSource = new TextView[articlesList.size()];
         private TextView[] mTime = new TextView[articlesList.size()];
@@ -285,7 +283,6 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 View view = View.inflate(context, R.layout.item_news, null);
                 mTitle[i] = view.findViewById(R.id.title);
                 mDesc[i] = view.findViewById(R.id.desc);
-                mAuthor[i] = view.findViewById(R.id.author);
                 mPublishedAt[i] = view.findViewById(R.id.publishedAt);
                 mSource[i] = view.findViewById(R.id.source);
                 mTime[i] = view.findViewById(R.id.time);

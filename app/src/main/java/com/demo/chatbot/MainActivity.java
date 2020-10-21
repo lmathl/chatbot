@@ -164,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (request.contains("inches")){
             handleInches(request);
         } else if (request.equals("2") || request.contains("news")) {
-            Pattern p = Pattern.compile("([a-z\\s]+)\\s*news",
+            Pattern p = Pattern.compile("([a-z]+)\\s*news",
                     Pattern.CASE_INSENSITIVE);
             Matcher m = p.matcher(request);
 
@@ -340,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
             number = Double.parseDouble(m.group(2));
             output = percentage/100 * number;
         }
-        Message responseMessage = new Message(percentage + "% of " + number + " is " +
+        Message responseMessage = new Message(outputIntegerIfInteger(percentage) + "% of " + outputIntegerIfInteger(number) + " is " +
                 String.format("%.2f", output), "text", false);
         messageArrayList.add(responseMessage);
     }
@@ -359,16 +359,22 @@ public class MainActivity extends AppCompatActivity {
 
         if (m.matches()) {
             number = Double.parseDouble(m.group(1));
-            output = number * 2.45;
-            Message responseMessage = new Message(number + " inches in cm is " +
+            output = number * 2.54;
+            Message responseMessage = new Message(outputIntegerIfInteger(number) + " inches in cm is " +
                     String.format("%.2f", output), "text", false);
             messageArrayList.add(responseMessage);
         } else if (m2.matches()) {
             cmInput = Double.parseDouble(m2.group(1));
-            inchesOutput = cmInput / 2.45;
-            Message responseMessage = new Message(cmInput + " cm in inches is " +
+            inchesOutput = cmInput / 2.54;
+            Message responseMessage = new Message(outputIntegerIfInteger(cmInput) + " cm in inches is " +
                     String.format("%.2f", inchesOutput), "text", false);
             messageArrayList.add(responseMessage);
         }
+    }
+
+    private String outputIntegerIfInteger(double number) {
+        int numberAsInteger = (int) number;
+        String numberToShow = Math.ceil(number) == Math.floor(number) ? String.valueOf(numberAsInteger) : String.valueOf(number);
+        return numberToShow;
     }
 }

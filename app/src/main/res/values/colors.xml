@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#2FC66C</color>
-    <color name="colorPrimaryDark">#06B300</color>
-    <color name="colorAccent">#2CAF3E</color>
-    <color name="bg_bubble_bot">#B4EDB5</color>
-    <color name="bg_bubble_self">#FFD9BD</color>
+    <color name="colorPrimary">#3C96B1</color>
+    <color name="colorPrimaryDark">#3C96B1</color>
+    <color name="colorAccent">#1E8EAF</color>
+    <color name="bg_bubble_bot">#FFFFFF</color>
+    <color name="bg_bubble_self">#3C96B1</color>
 
     <color name="colorBackground">#f9f9fa</color>
     <color name="colorTextSubtitle">#4e4e4e</color>
