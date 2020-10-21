@@ -183,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
             messageArrayList.add(responseMessage);
         } else if (request.replaceAll("\\s+", "").matches("[0-9]+[\\\\+-\\\\*\\\\/\\\\^]+[0-9]+([\\\\+-\\\\*\\\\/\\\\^][0-9]+)*")){
             Message responseMessage = new Message(request + " = " +
-                    CalculateString.getCalculation(request.replaceAll("\\s+", "")), "text", false);
+                    outputIntegerIfInteger(CalculateString.getCalculation(request.replaceAll("\\s+", ""))), "text", false);
             messageArrayList.add(responseMessage);
         } else {
             int randomQuoteIndex = (int) (Math.random() * 10) % Utils.quotes.length;
