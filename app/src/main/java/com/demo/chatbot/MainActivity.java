@@ -2,14 +2,12 @@ package com.demo.chatbot;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Rect;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -17,7 +15,6 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -34,6 +31,7 @@ import com.demo.chatbot.models.WeatherList;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,7 +44,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
     private EditText inputMessage;
-    private ImageView btn_submit;
+    private ImageView btnSubmit;
     private MessageAdapter mAdapter;
     private ArrayList messageArrayList;
     private RecyclerView recyclerView;
@@ -56,8 +54,9 @@ public class MainActivity extends AppCompatActivity {
     private ArticlesServices articlesServices;
     private ArrayList<Weather> weatherList;
     private ArrayList<Article> articlesList;
-    private ConstraintLayout root;
-    private boolean isKeyboardShowing = false;
+    private Map<Integer, List<Article>> articleListByPosition = new HashMap<Integer, List<Article>>();
+    int fetchNewsCount = 0;
+    static int numberOfNewsToShowInOneFetch = 5;
 
     String country = "hk";
     private Map<String, String> countryMap = new HashMap<String, String>(){{
@@ -98,39 +97,8 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         recyclerView.setAdapter(mAdapter);
 
-        root = findViewById(R.id.main_activity_layout);
-        root.getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-
-                        Rect r = new Rect();
-                        root.getWindowVisibleDisplayFrame(r);
-                        int screenHeight = root.getRootView().getHeight();
-
-                        // r.bottom is the position above soft keypad or device button.
-                        // if keypad is shown, the r.bottom is smaller than that before.
-                        int keypadHeight = screenHeight - r.bottom;
-
-                        if (keypadHeight > screenHeight * 0.15) { // 0.15 ratio is perhaps enough to determine keypad height.
-                            // keyboard is opened
-                            if (!isKeyboardShowing) {
-                                isKeyboardShowing = true;
-                                onKeyboardVisibilityChanged(true);
-                            }
-                        }
-                        else {
-                            // keyboard is closed
-                            if (isKeyboardShowing) {
-                                isKeyboardShowing = false;
-                                onKeyboardVisibilityChanged(false);
-                            }
-                        }
-                    }
-                });
-
-        btn_submit = findViewById(R.id.btn_send);
-        btn_submit.setOnClickListener(new View.OnClickListener() {
+        btnSubmit = findViewById(R.id.btn_send);
+        btnSubmit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 sendMessage();
@@ -139,12 +107,6 @@ public class MainActivity extends AppCompatActivity {
 
         inputMessage = findViewById(R.id.edit_request);
         image = findViewById(R.id.image_attached);
-    }
-
-    private void onKeyboardVisibilityChanged(boolean opened) {
-        if (opened){
-            recyclerView.smoothScrollToPosition(messageArrayList.size() - 1);
-        }
     }
 
     @Override
@@ -330,7 +292,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void articlesSuccessResponse(ArticlesList articles) {
-        articlesList.clear();
         if (articles != null) {
             toggleLoading(false);
 
@@ -339,11 +300,23 @@ public class MainActivity extends AppCompatActivity {
             }
             mAdapter.setArticlesList(articlesList);
 
+            articleListByPosition.put(fetchNewsCount++, articlesList.subList(
+                    articlesList.size() - numberOfNewsToShowInOneFetch, articlesList.size()));
+            int numberOfTimesNewsFetched = 0;
+
+            for (int pos : articleListByPosition.keySet()) {
+                articleListByPosition.put(pos, articlesList.subList(
+                        numberOfTimesNewsFetched * numberOfNewsToShowInOneFetch,
+                        numberOfTimesNewsFetched * numberOfNewsToShowInOneFetch + numberOfNewsToShowInOneFetch
+                ));
+                numberOfTimesNewsFetched++;
+            }
+
             mAdapter.setOnItemClickListener(new MessageAdapter.OnItemClickListener() {
                 @Override
-                public void onItemClick(View view, int position) {
+                public void onItemClick(View view, int positionAtAdapter, int positionAtColumn) {
                     Intent intent = new Intent(MainActivity.this, NewsWebViewActivity.class);
-                    Article article = articlesList.get(position);
+                    Article article = articleListByPosition.get(positionAtAdapter - 1).get(positionAtColumn);
                     intent.putExtra("url", article.getUrl());
                     intent.putExtra("title", article.getTitle());
                     intent.putExtra("source",  article.getSource().getName());

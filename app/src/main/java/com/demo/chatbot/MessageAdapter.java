@@ -33,6 +33,9 @@ import com.demo.chatbot.models.Weather;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -47,8 +50,10 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     String[] weekdays = {
             "SAT", "SUN", "MON", "TUE", "WED", "THU", "FRI",
     };
+    private Map<Integer, List<Article>> articleListByPosition = new HashMap<Integer, List<Article>>();
     private OnItemClickListener onItemClickListener;
     private int lastPosition = -1;
+    static int numberOfNewsToShowInOneFetch = MainActivity.numberOfNewsToShowInOneFetch;
 
     public MessageAdapter(Activity activity,
                           Context context,
@@ -68,7 +73,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     public interface OnItemClickListener {
-        void onItemClick(View view, int position);
+        void onItemClick(View view, int positionAtAdapter, int positionAtColumn);
     }
 
     @Override
@@ -86,7 +91,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         }
         else if (viewType == ARTICLE) {
             return new ArticlesViewHolder(LayoutInflater.from(parent.getContext()).inflate(
-                    R.layout.item_chat_bot, parent, false
+                    R.layout.item_chat_bot_news_content, parent, false
             ), onItemClickListener);
         } else {
 
@@ -157,42 +162,63 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 }
                 break;
             case "news":
-                ((ArticlesViewHolder) holder).message.setText(message.getMessage());
+                if (articlesList.size() >= numberOfNewsToShowInOneFetch){
 
-                RequestOptions requestOptions = new RequestOptions();
-                requestOptions.placeholder(Utils.getRandomDrawbleColor());
-                requestOptions.error(Utils.getRandomDrawbleColor());
-                requestOptions.diskCacheStrategy(DiskCacheStrategy.ALL);
-                requestOptions.centerCrop();
+                    articleListByPosition.put(position, articlesList.subList(
+                            articlesList.size() - numberOfNewsToShowInOneFetch, articlesList.size()));
+                    int numberOfTimesNewsFetched = 0;
 
-                for (int i = 0; i < 5; i++) {
-                    Article model = articlesList.get(i);
+                    for (int pos : articleListByPosition.keySet()) {
+                        articleListByPosition.put(pos, articlesList.subList(
+                                numberOfTimesNewsFetched * numberOfNewsToShowInOneFetch,
+                                numberOfTimesNewsFetched * numberOfNewsToShowInOneFetch + numberOfNewsToShowInOneFetch));
+                        numberOfTimesNewsFetched++;
+                    }
 
-                    int finalI = i;
-                    Glide.with(context)
-                            .load(model.getUrlToImage())
-                            .apply(requestOptions)
-                            .listener(new RequestListener<Drawable>() {
-                                @Override
-                                public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                    ((ArticlesViewHolder) holder).message.setText(message.getMessage() +"\n");
+
+                    RequestOptions requestOptions = new RequestOptions();
+                    requestOptions.placeholder(Utils.getRandomDrawbleColor());
+                    requestOptions.error(Utils.getRandomDrawbleColor());
+                    requestOptions.diskCacheStrategy(DiskCacheStrategy.ALL);
+                    requestOptions.centerCrop();
+                    int i = 0;
+                    for (Article model: articleListByPosition.get(position)) {
+                        int finalI = i;
+                        Glide.with(context)
+                                .load(model.getUrlToImage())
+                                .apply(requestOptions)
+                                .listener(new RequestListener<Drawable>() {
+                                    @Override
+                                    public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
                                     ((ArticlesViewHolder) holder).mProgressBar[finalI].setVisibility(View.GONE);
-                                    return false;
-                                }
+                                        return false;
+                                    }
 
-                                @Override
-                                public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                                    @Override
+                                    public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
                                     ((ArticlesViewHolder) holder).mProgressBar[finalI].setVisibility(View.GONE);
-                                    return false;
-                                }
-                            })
-                            .transition(DrawableTransitionOptions.withCrossFade())
-                            .into(((ArticlesViewHolder) holder).mImageView[finalI]);
+                                        return false;
+                                    }
+                                })
+                                .transition(DrawableTransitionOptions.withCrossFade())
+                                .into(((ArticlesViewHolder) holder).mImageView[finalI]);
 
-                    ((ArticlesViewHolder) holder).mTitle[i].setText(model.getTitle());
-                    ((ArticlesViewHolder) holder).mDesc[i].setText(model.getDescription());
-                    ((ArticlesViewHolder) holder).mSource[i].setText(model.getSource().getName());
-                    ((ArticlesViewHolder) holder).mTime[i].setText(" \u2022 " + Utils.DateToTimeFormat(model.getPublishedAt()));
-                    ((ArticlesViewHolder) holder).mPublishedAt[i].setText(Utils.DateFormat(model.getPublishedAt()));
+                        ((ArticlesViewHolder) holder).mTitle[i].setText(model.getTitle());
+                        ((ArticlesViewHolder) holder).mDesc[i].setText(model.getDescription());
+                        ((ArticlesViewHolder) holder).mPublishedAt[i].setText(Utils.DateFormat(model.getPublishedAt()));
+                        ((ArticlesViewHolder) holder).mSource[i].setText(model.getSource().getName());
+                        ((ArticlesViewHolder) holder).mTime[i].setText(" \u2022 " + Utils.DateToTimeFormat(model.getPublishedAt()));
+
+                        int finalPosCount = numberOfTimesNewsFetched;
+                        ((ArticlesViewHolder) holder).mImageView[finalI].setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                onItemClickListener.onItemClick(view, finalPosCount, finalI);
+                            }
+                        });
+                        i++;
+                    }
                 }
                 break;
         }
@@ -235,12 +261,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     // Weather
     public class WeatherViewHolder extends RecyclerView.ViewHolder{
         private LinearLayout weatherLayout;
+        TextView message;
+
         private TextView[] mDate = new TextView[weatherList.size()];
         private TextView[] mMaxTemp = new TextView[weatherList.size()];
         private TextView[] mMinTemp = new TextView[weatherList.size()];
         private TextView[] mWeatherCondition = new TextView[weatherList.size()];
         private ImageView[] mWeatherIcon = new ImageView[weatherList.size()];
-        TextView message;
 
         public WeatherViewHolder(View itemView) {
             super(itemView);
@@ -262,43 +289,34 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     // Article
     private class ArticlesViewHolder extends RecyclerView.ViewHolder {
-        private LinearLayout articlesLayout;
+        private LinearLayout verticalArticleLayout, horizontalArticleLayout;
         TextView message;
-        OnItemClickListener onItemClickListener;
 
-        private TextView[] mTitle = new TextView[articlesList.size()];
-        private TextView[] mDesc = new TextView[articlesList.size()];
-        private TextView[] mPublishedAt = new TextView[articlesList.size()];
-        private TextView[] mSource = new TextView[articlesList.size()];
-        private TextView[] mTime = new TextView[articlesList.size()];
-        private ImageView[] mImageView = new ImageView[articlesList.size()];
-        private ProgressBar[] mProgressBar = new ProgressBar[articlesList.size()];
+        private TextView[] mTitle = new TextView[numberOfNewsToShowInOneFetch];
+        private TextView[] mDesc = new TextView[numberOfNewsToShowInOneFetch];
+        private TextView[] mPublishedAt = new TextView[numberOfNewsToShowInOneFetch];
+        private TextView[] mSource = new TextView[numberOfNewsToShowInOneFetch];
+        private TextView[] mTime = new TextView[numberOfNewsToShowInOneFetch];
+        private ImageView[] mImageView = new ImageView[numberOfNewsToShowInOneFetch];
+        private ProgressBar[] mProgressBar = new ProgressBar[numberOfNewsToShowInOneFetch];
 
         ArticlesViewHolder(View itemView, OnItemClickListener onItemClickListener) {
             super(itemView);
-            message = itemView.findViewById(R.id.message);
-            articlesLayout = itemView.findViewById(R.id.chat_bot_linear_layout);
+            message = itemView.findViewById(R.id.api_content_message);
+            verticalArticleLayout = itemView.findViewById(R.id.chat_bot_vertical_linear_layout);
+            horizontalArticleLayout = itemView.findViewById(R.id.chat_bot_horizontal_linear_layout);
 
-            for (int i = 0; i < articlesList.size(); i++) {
-                View view = View.inflate(context, R.layout.item_news, null);
-                mTitle[i] = view.findViewById(R.id.title);
-                mDesc[i] = view.findViewById(R.id.desc);
-                mPublishedAt[i] = view.findViewById(R.id.publishedAt);
-                mSource[i] = view.findViewById(R.id.source);
-                mTime[i] = view.findViewById(R.id.time);
-                mImageView[i] = view.findViewById(R.id.img);
+            for (int i = 0; i < numberOfNewsToShowInOneFetch; i++) {
+                View view = View.inflate(context, R.layout.item_horizontal_news, null);
+                mTitle[i] = view.findViewById(R.id.tv_title);
+                mDesc[i] = view.findViewById(R.id.tv_desc);
+                mPublishedAt[i] = view.findViewById(R.id.tv_published_at);
+                mSource[i] = view.findViewById(R.id.tv_source);
+                mTime[i] = view.findViewById(R.id.tv_time);
+                mImageView[i] = view.findViewById(R.id.iv_news);
                 mProgressBar[i] = view.findViewById(R.id.progress_load_photo);
-
-                articlesLayout.addView(view);
-                int finalI = i;
-                view.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        onItemClickListener.onItemClick(view, finalI);
-                    }
-                });
+                horizontalArticleLayout.addView(view);
             }
-
         }
     }
 }
